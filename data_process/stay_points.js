@@ -6,12 +6,14 @@ const converter = csv()
   .fromFile('./gps.csv')
   .then((json) => {
     let data = d3.sort(json, d=>+d.id, d=>new Date(d.Timestamp))
-
+    
     let car_track = d3.groups(data, d => +d.id)
     let sample_tracks = [];
+    console.log(car_track)
 
     car_track.map(car=>{
       let id = car[0];
+      
       let tracks = car[1];
       let stay_points = [];
       tracks.map((track,i)=>{
