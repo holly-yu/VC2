@@ -11,6 +11,7 @@ from geopy.distance import geodesic
 stay_data = pd.read_json("../dataset/stay_periods.json")
 print(stay_data)
 
+# cc卡对应的关系矩阵
 cc_data = pd.read_csv("../dataset/cc_data.csv")
 cc_data_group = cc_data.sort_values(by=["last4ccnum","timestamp"]).groupby(by="last4ccnum")
 Correlation_cc_columns = []
@@ -19,7 +20,7 @@ for name,data in cc_data_group:
     Correlation_cc_columns.append(name)
 
 
-
+# loyalty卡对应的关系矩阵
 loyalty_data = pd.read_csv("../dataset/loyalty_data.csv")
 loyalty_data_group = loyalty_data.sort_values(by=["loyaltynum","timestamp"]).groupby(by="loyaltynum")
 Correlation_loy_columns = []
@@ -30,13 +31,13 @@ for name,data in loyalty_data_group:
 sigma = 10
 Correlation_cc = pd.DataFrame(index=list(stay_data.id), columns=Correlation_cc_columns)
 Correlation_loy = pd.DataFrame(index=list(stay_data.id), columns=Correlation_loy_columns)
-print(Correlation_cc.columns)
-print(Correlation_loy.columns)
+# print(Correlation_cc.index)
+# print(Correlation_loy.columns)
 
 # 求时间相似度
 def timeCorr(stayEvent, consumeEvent):
-    stay_begin = time.mktime(time.strptime(stayEvent.stay_begin,"%m/%d/%Y %H:%M:%S"))
-    stay_end = time.mktime(time.strptime(stayEvent.stay_end,"%m/%d/%Y %H:%M:%S"))
+    stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"],"%m/%d/%Y %H:%M:%S"))
+    stay_end = time.mktime(time.strptime(stayEvent["stay_end"],"%m/%d/%Y %H:%M:%S"))
     time_consume = time.mktime(time.strptime(consumeEvent.timestamp,"%m/%d/%Y %H:%M:%S"))
 
     if time_consume >= stay_begin and time_consume <= stay_end:
@@ -48,12 +49,25 @@ def timeCorr(stayEvent, consumeEvent):
 
 # gaussian求空间相似度
 def spaceCorr (stayEvent, consumeEvent, sigma):
-    distance = geodesic((stayEvent.lat,stayEvent.long),(consumeEvent.lat, consumeEvent.long)).m
+    distance = geodesic((stayEvent["lat"],stayEvent["long"]),(consumeEvent.lat, consumeEvent.long)).m
     return math.exp(- distance**2 / 2 * sigma**2)
 
+# 求时空相似度
 def correlation(stayEvent, consumeEvent):
     return timeCorr(stayEvent,consumeEvent) * spaceCorr(stayEvent, consumeEvent, sigma)
 
 # 求相似度矩阵
 def AveCorrelation_cc():
-    pass
+    for stayEvent in stay_data["stay_periods"]:
+        totalCorr = 0
+        for stay_period in stayEvent:
+            for name, cc in cc_data_group:
+                totalCorr += correlation(stay_period, cc)
+        Correlation_cc.append(totalCorr / len(stayEvent) * len(cc_data_group))
+
+    for stayEvent in stay_data["stay_periods"]:
+        totalCorr = 0
+        for stay_period in stayEvent:
+            for name, loy_data in loyalty_data_group:
+                totalCorr += correlation(stay_period, loy_data)
+        Correlation_loy.append(totalCorr / len(stayEvent) * len(loyalty_data_group))
