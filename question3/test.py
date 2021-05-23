@@ -3,8 +3,9 @@ from geopy.distance import geodesic
 import numpy as np
 import pandas as pd
 import json
+from question3 import correlation
 
-a = "01/17/2014 07:58:09"
+a = "01/16/2014 07:58:11"
 print(time.mktime(time.strptime(a,"%m/%d/%Y %H:%M:%S")))
 print(time.mktime(time.strptime("01/17/2014 07:58:11","%m/%d/%Y %H:%M:%S"))-time.mktime(time.strptime(a,"%m/%d/%Y %H:%M:%S")))
 print(time.mktime(time.strptime(a,"%m/%d/%Y %H:%M:%S")))
@@ -17,15 +18,23 @@ print(geodesic((36.048029,24.879575),(36.063658,24.885866)).m)
 #         pass
 #     print(stayEvent)
 
-store_position = pd.read_csv("dataset/store_position.csv")
-print(store_position)
-lat = store_position[store_position.store == "Roberts and Sons"]["lat"]
-long = store_position[store_position.store == "Roberts and Sons"]["long"]
-print(lat,long)
-if pd.isnull(lat).bool() and pd.isnull(long).bool():
-    print("aaaaa")
-else:
-    print("bbbbb")
+# store_position = pd.read_csv("dataset/store_position.csv")
+# print(store_position)
+# lat = store_position[store_position.store == "Roberts and Sons"]["lat"]
+# long = store_position[store_position.store == "Roberts and Sons"]["long"]
+# print(lat,long)
+# if pd.isnull(lat).bool() and pd.isnull(long).bool():
+#     print("aaaaa")
+# else:
+#     print("bbbbb")
+
+
 # cc_data = pd.read_csv("dataset/cc_data.csv")
 # for cdata in cc_data.iterrows():
 #     print(cdata[1].location)
+
+df = pd.DataFrame(index=['1','2'],columns=['a','b'])
+
+if __name__ == '__main__':
+    corr = correlation.Correlation()
+# print(cor.Correlation().Correlation_cc_columns)
