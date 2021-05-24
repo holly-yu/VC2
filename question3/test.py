@@ -40,5 +40,5 @@ df = pd.DataFrame(data=matrix, index=['1','2'],columns=['a','b','c'])
 
 g = lambda a: a > 3
 
-
-print(df[])
+list = [1,2,3]
+print(2 not in list)

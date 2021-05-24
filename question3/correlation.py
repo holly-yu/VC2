@@ -9,21 +9,22 @@ from geopy.distance import geodesic
 
 class Correlation:
     def __init__(self):
-        self.store_position = pd.DataFrame()
-        self.store = []
-        self.stay_data = pd.DataFrame()
+        self.store_position = pd.DataFrame()  # 商店坐标
+        self.store = []                       # 所有商店名
 
-        self.cc_data = pd.DataFrame()
-        self.Correlation_cc_columns = []
-        self.cc_events = []
-        self.Correlation_cc = pd.DataFrame()
+        self.stay_data = pd.DataFrame()       # 停车数据
 
-        self.loyalty_data = pd.DataFrame()
-        self.Correlation_loy_columns = pd.DataFrame()
-        self.loy_events = []
-        self.Correlation_loy = pd.DataFrame()
+        self.cc_data = pd.DataFrame()       # 信用卡消费数据
+        self.Correlation_cc_columns = []    # 所有卡
+        self.cc_events = []                 # 处理后的信用卡消费数据
+        self.Correlation_cc = pd.DataFrame()    # 信用卡对应车的相关度
 
-        self.sigma = 10
+        self.loyalty_data = pd.DataFrame()              # 会员卡消费数据
+        self.Correlation_loy_columns = pd.DataFrame()   # 所有卡
+        self.loy_events = []                            # 处理后的会员卡消费数据
+        self.Correlation_loy = pd.DataFrame()           # 会员卡对应车的相关度
+
+        self.sigma = 10            # 高斯核函数的参数
 
         self.init()
 
