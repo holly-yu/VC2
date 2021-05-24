@@ -32,9 +32,13 @@ print(geodesic((36.048029,24.879575),(36.063658,24.885866)).m)
 # cc_data = pd.read_csv("dataset/cc_data.csv")
 # for cdata in cc_data.iterrows():
 #     print(cdata[1].location)
+matrix = [[1, 2, 3], [4, 5, 6]]
+df = pd.DataFrame(data=matrix, index=['1','2'],columns=['a','b','c'])
+# for i in df.index:
+#     for j in df.columns:
+#         print(df.loc[i,j])
 
-df = pd.DataFrame(index=['1','2'],columns=['a','b'])
+g = lambda a: a > 3
 
-if __name__ == '__main__':
-    corr = correlation.Correlation()
-# print(cor.Correlation().Correlation_cc_columns)
+
+print(df[])
