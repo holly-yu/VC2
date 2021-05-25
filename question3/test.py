@@ -42,3 +42,4 @@ g = lambda a: a > 3
 
 list = [1,2,3]
 print(2 not in list)
+print(range(40))

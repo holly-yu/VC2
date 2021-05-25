@@ -50,6 +50,7 @@ class DrawCorr:
             self.corr_data[index] = [item if item >= 0.95 else 0 for item in self.maxminnorm(data)]
         print(self.corr_data)
 
+
     def draw(self, data, xlabels, ylabels):
         """画相关度矩阵"""
         plt.figure(figsize=(12, 10), dpi=80)
@@ -80,14 +81,15 @@ class DrawCorr:
                 self.resRedundance.append(cc)
         self.resRedunCount = len(self.resRedundance)
 
-    def diagSort(self):
-        """对相关矩阵进行对角排序，尽量使一一对应的数据在左上角的对角线上"""
         gt = lambda x: np.float64(x) > 0
-        for i, cc in enumerate(self.corr_data):         # 计算每行有重复的数据
+        for i, cc in enumerate(self.corr_data):  # 计算每行有重复的数据
             count = len([data for data in cc if gt(data)])
             self.resRedunCountByRows.append(count)
-        print(self.resRedunCountByRows)
 
+    def diagSort(self):
+        """对相关矩阵进行对角排序，尽量使一一对应的数据在左上角的对角线上"""
+
+        gt = lambda x: np.float64(x) > 0
         car_list_sorted = []   # 排序后的车id列表
         cc_list_sorted = []    # 排序后的信用卡id列表
         car_diag_index = []     # 对角线上的车id列表
@@ -147,8 +149,58 @@ class DrawCorr:
 
         self.corr_data_diagsort = pd.DataFrame(self.corr_data_sorted, index=cc_list_sorted, columns=car_list_sorted)
 
+    def diagSort2(self):
+        car_list_sorted = []  # 排序后的车id列表
+        car_diag_index = []  # 对角线上的车索引列表
+
+        cc_list_sorted = []  # 排序后的信用卡id列表
+        cc_diag_index = []  # 对角线上的信用卡索引列表
+        cc_index_rest = []  # 未对角排序信用卡索引列表
 
 
+        self.corr_data_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
+
+
+        flag = False
+        for indexi, cc in enumerate(self.corr_data):
+            for indexj, corr in enumerate(cc):
+                if corr == 1:
+                    if self.car_list[indexj] in car_list_sorted:
+                        cc_index_rest.append(indexi)
+                        break
+                    else:
+                        cc_diag_index.append(indexi)
+                        cc_list_sorted.append(self.cc_list[indexi])
+                        car_diag_index.append(indexj)
+                        car_list_sorted.append(self.car_list[indexj])
+            #     if  len(car_list_sorted) == len(self.car_list):
+            #         flag = True
+            #         break
+            # if flag:
+            #     break
+
+        cc_diag_index.extend(cc_index_rest)
+        for index in cc_index_rest:
+            cc_list_sorted.append(self.cc_list[index])
+
+
+        for index, carid in enumerate(self.car_list):
+            if index not in car_diag_index:
+                car_diag_index.append(index)
+                car_list_sorted.append(carid)
+        print(len(cc_diag_index))
+        print(cc_diag_index)
+        print(len(car_diag_index))
+        print(car_diag_index)
+
+        for indexi, cc in enumerate(cc_diag_index):
+            for indexj, car in enumerate(car_diag_index):
+                if self.corr_data[cc][car] != 0:
+                    self.corr_data_sorted[indexi][indexj] = self.corr_data[cc][car]
+
+
+
+        self.corr_data_diagsort = pd.DataFrame(self.corr_data_sorted, index=cc_list_sorted, columns=car_list_sorted)
 
 
 if __name__ == '__main__':
@@ -156,6 +208,6 @@ if __name__ == '__main__':
     drawcorr.process_data()
     drawcorr.draw(drawcorr.corr_data, drawcorr.car_list, drawcorr.cc_list)
     drawcorr.resDetect()
-    print(drawcorr.resRedundance)
-    drawcorr.diagSort()
+    # drawcorr.diagSort()
+    drawcorr.diagSort2()
     drawcorr.draw(drawcorr.corr_data_diagsort, drawcorr.corr_data_diagsort.columns, drawcorr.corr_data_diagsort.index)
