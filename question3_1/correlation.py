@@ -28,18 +28,19 @@ class Correlation:
         self.sigma1 = 30            # 30秒
         self.sigma2 = 50            # 50米
 
-        self.outputfile = '../dataset/corr_data1.txt'
+        self.outputfile_cc = 'output/corr_data_cc.txt'
+        self.outputfile_loy = 'output/corr_data_loy.txt'
 
         self.init()
 
     def init(self):
-        self.store_position = pd.read_csv("../dataset/store_position.csv").dropna()
+        """初始化各项数据"""
         # 商店名和经纬度对应的数据，有一些缺失数据
         self.store_position = pd.read_csv("../dataset/store_position.csv").dropna()
         self.store = list(self.store_position.store)
         # print(store)
 
-        self.stay_data = pd.read_json("../dataset/stay_periods.json")
+        self.stay_data = pd.read_json("../dataset/stay_periods_1.0.json")
         # print(stay_data)
 
         # cc卡对应的关系矩阵
@@ -67,8 +68,9 @@ class Correlation:
         self.Correlation_cc = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_cc_columns)
         self.Correlation_loy = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_loy_columns)
 
-    # 求时间相似度
-    def timeCorr(self, stayEvent, consumeEvent, sigma):
+
+    def timeCorr1(self, stayEvent, consumeEvent, sigma):
+        """求cc的时间相似度"""
         stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"], "%m/%d/%Y %H:%M:%S"))
         stay_end = time.mktime(time.strptime(stayEvent["stay_end"], "%m/%d/%Y %H:%M:%S"))
         time_consume = time.mktime(time.strptime(consumeEvent.timestamp, "%m/%d/%Y %H:%M"))
@@ -76,29 +78,45 @@ class Correlation:
         if time_consume >= stay_begin and time_consume <= stay_end:
             return 1
         elif time_consume < stay_begin:
-            if stay_begin - time_consume > 7200:
+            if stay_begin - time_consume > 3600:
                 return 0
             else:
                 return np.exp(- (time_consume - stay_begin) ** 2 / (2 * sigma **2))
         else:
-            if stay_end - time_consume > 7200:
+            if stay_end - time_consume > 3600:
                 return 0
             return np.exp(- (time_consume - stay_end) ** 2 / (2 * sigma **2))
 
-    # gaussian求空间相似度
+    def timeCorr2(self, stayEvent, consumeEvent):
+        """求loyalty card 的时间相似度"""
+        stay_time = stayEvent["stay_begin"][:10]
+        time_consume = consumeEvent.timestamp
+
+        if stay_time == time_consume:
+            return 1
+        else:
+            return 0
+
+
     def spaceCorr(self, stayEvent, consumeEvent, sigma):
+        """gaussian求空间相似度"""
         lat = self.store_position[self.store_position.store == consumeEvent.location]["lat"]
         long = self.store_position[self.store_position.store == consumeEvent.location]["long"]
         distance = geodesic((stayEvent["lat"], stayEvent["long"]), (float(lat), float(long))).m
         # print(distance)
         return np.exp(- distance ** 2 / (2 * sigma ** 2))
 
-    # 求时空相似度
-    def correlation(self, stayEvent, consumeEvent):
-        return self.timeCorr(stayEvent, consumeEvent, self.sigma1) * self.spaceCorr(stayEvent, consumeEvent, self.sigma2)
 
-    # 求相似度矩阵
-    def AveCorrelation(self):
+    def correlation(self, stayEvent, consumeEvent, card):
+        """求时空相似度"""
+        if card == 'cc':
+            return self.timeCorr1(stayEvent, consumeEvent, self.sigma1)
+        else:                 # loyalty card
+            return self.timeCorr2(stayEvent, consumeEvent) * self.spaceCorr(stayEvent, consumeEvent, self.sigma2)
+
+
+    def AveCorrelation_cc(self):
+        """求cc相似度矩阵"""
         id = 0
         for stayEvents in self.stay_data["stay_periods"]:
             res_row = []
@@ -108,7 +126,7 @@ class Correlation:
                 for stay_period in stayEvents:
 
                     for consumeEvent in cc_num.iterrows():
-                        totalCorr += self.correlation(stay_period, consumeEvent[1])
+                        totalCorr += self.correlation(stay_period, consumeEvent[1], 'cc')
                         # totalCorr += self.timeCorr(stay_period, consumeEvent[1], self.sigma1)
                         # totalCorr += self.spaceCorr(stay_period, consumeEvent[1], self.sigma2)
                         count += 1
@@ -119,15 +137,17 @@ class Correlation:
             self.Correlation_cc.iloc[id:id + 1, :] = res_row
             id += 1
 
+
     def saveData(self, data, outputfile):
-        """相关数据写入文件"""
+        """
+        相关数据写入文件
+        np.savetxt默认的参数，数据格式是二维数组，注意！
+        """
         np.savetxt(outputfile, data, delimiter=',')
 
 if __name__ == '__main__':
     corr = Correlation()
-    corr.AveCorrelation()
-    corr.saveData(corr.Correlation_cc, corr.outputfile)
+    corr.AveCorrelation_cc()
+    corr.saveData(corr.Correlation_cc, corr.outputfile_cc)
     print(corr.store)
-    print(len(corr.stay_data.id))
-    print(len(corr.Correlation_cc_columns))
-    print(len(corr.Correlation_loy_columns))
+

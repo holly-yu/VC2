@@ -4,13 +4,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
-from question3.correlation import Correlation
+from question3_1.correlation import Correlation
 import math
 
 class DrawCorr:
     def __init__(self):
         self.corr_data = []      # 原始的相关数据矩阵
-        self.filepath = '../dataset/corr_data.txt'
+        self.filepath = '../dataset/corr_data1_cc.txt'
         self.correlation = Correlation()
 
         self.car_list = list(self.correlation.stay_data.id)

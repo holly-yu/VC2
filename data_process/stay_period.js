@@ -20,7 +20,7 @@ const converter = csv()
       tracks.map((track,i) => {
         if(i){
           let prev_data = new Date(tracks[i-1].Timestamp)
-          if(new Date(track.Timestamp) - prev_data > 60*1000){
+          if(new Date(track.Timestamp) - prev_data > 60*1000 && new Date(track.Timestamp) - prev_data < 60*1000*60*2 ){
             stay_periods.push({
               "stay_begin":tracks[i-1].Timestamp,
               "stay_end":tracks[i].Timestamp,
@@ -35,7 +35,7 @@ const converter = csv()
         stay_periods
       })
     })
-    fs.writeFile('stay_periods.json', JSON.stringify(sample_tracks, null, 4), 'utf8', (err) => {
+    fs.writeFile('stay_periods_1.0.json', JSON.stringify(sample_tracks, null, 4), 'utf8', (err) => {
       if (err) {
         throw err;
       }
