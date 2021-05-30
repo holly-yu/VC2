@@ -47,8 +47,8 @@ class DrawCorr:
             # corr_data.append(row)
 
         for index, data in enumerate(self.corr_data):
-            self.corr_data[index] = [item if item >= 0.95 else 0 for item in self.maxminnorm(data)]
-            # self.corr_data[index] = [item for item in self.maxminnorm(data)]
+            # self.corr_data[index] = [item if item >= 0.95 else 0 for item in self.maxminnorm(data)]
+            self.corr_data[index] = [item for item in self.maxminnorm(data)]
         print(self.corr_data)
 
 
@@ -207,8 +207,8 @@ class DrawCorr:
 if __name__ == '__main__':
     drawcorr = DrawCorr()
     drawcorr.process_data()
-    # drawcorr.draw(drawcorr.corr_data, drawcorr.car_list, drawcorr.cc_list)
+    drawcorr.draw(drawcorr.corr_data, drawcorr.car_list, drawcorr.cc_list)
     drawcorr.resDetect()
     # drawcorr.diagSort()
     drawcorr.diagSort2()
-    drawcorr.draw(drawcorr.corr_data_diagsort, drawcorr.corr_data_diagsort.columns, drawcorr.corr_data_diagsort.index)
+    # drawcorr.draw(drawcorr.corr_data_diagsort, drawcorr.corr_data_diagsort.columns, drawcorr.corr_data_diagsort.index)
