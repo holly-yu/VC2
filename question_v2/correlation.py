@@ -17,7 +17,8 @@ class Correlation:
         self.cc_data = pd.DataFrame()  # 信用卡消费数据
         self.Correlation_cc_columns = []  # 所有卡
         self.cc_events = []  # 处理后的信用卡消费数据
-        self.cc_matched_data = []  # 信用卡对应车的匹配数量
+        self.cc_matched_count = []  # 信用卡对应车的匹配数量
+        self.cc_matched_dis = []  # 信用卡对应车的匹配距离
 
         self.loyalty_data = pd.DataFrame()  # 会员卡消费数据
         self.Correlation_loy_columns = pd.DataFrame()  # 所有卡
@@ -28,7 +29,7 @@ class Correlation:
         self.sigma1 = 30  # 30秒
         self.sigma2 = 50  # 50米
 
-        self.outputfile_cc = 'output/corr_data_cc.txt'
+        self.outputfile_cc = 'output/corr_data_cc1.json'
         self.outputfile_loy = 'output/corr_data_loy.txt'
 
         self.init()
@@ -90,36 +91,42 @@ class Correlation:
         """求每张credit card和每个car的相关性"""
 
         for cc_num in self.cc_events:
-            res_row = []
+            res_row_count = []
+            res_row_dis = []
             for stayEvents in self.stay_data["stay_periods"]:
                 matched_count = 0
-                matched_length = 0
+                matched_dis = 0
                 for consumeEvent in cc_num.iterrows():
                     for stay_period in stayEvents:
                         if self.timeMatched(stay_period, consumeEvent[1]):
                             matched_count += 1
-                            matched_length += self.distance(stay_period,consumeEvent[1])
+                            matched_dis += self.distance(stay_period,consumeEvent[1])
                             # print(self.distance(stay_period,consumeEvent[1]))
                 if(matched_count != 0):
-                    ave_matched_length = matched_length / matched_count
+                    ave_matched_dis = matched_dis / matched_count
                 else:
-                    ave_matched_length = 10000   # 若匹配数量为0，设置平均距离为10km(相当于无穷)
-                res_row.append([matched_count, ave_matched_length])
-            print(len(res_row))
-            print(res_row)
+                    ave_matched_dis = 5000   # 若匹配数量为0，设置平均距离为5km(相当于无穷)
+                res_row_count.append(matched_count)
+                res_row_dis.append(ave_matched_dis)
+            # print(len(res_row))
+            # print(res_row)
 
-            self.cc_matched_data.append(res_row)
+            self.cc_matched_count.append(res_row_count)
+            self.cc_matched_dis.append(res_row_dis)
 
 
 
-    def saveData(self, data, outputfile):
+    def saveData(self, outputfile):
         """
         相关数据写入文件
         np.savetxt默认的参数，数据格式是二维数组，注意！
         """
+        data = {"cc_num": self.Correlation_cc_columns, "car_id": list(self.stay_data.id),
+                "matched_count": self.cc_matched_count, 'matched_dis': self.cc_matched_dis}
         with open(outputfile, 'w') as f:
+
             json.dump(data, f)
 if __name__ == '__main__':
     corr = Correlation()
     corr.correlation_cc()
-    corr.saveData(corr.cc_matched_data, corr.outputfile_cc)
+    corr.saveData(corr.outputfile_cc)
