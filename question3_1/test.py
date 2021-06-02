@@ -3,7 +3,7 @@ from geopy.distance import geodesic
 import numpy as np
 import pandas as pd
 import json
-from question3 import correlation
+# from question3 import correlation
 
 a = "01/16/2014 07:58:11"
 print(time.mktime(time.strptime(a,"%m/%d/%Y %H:%M:%S")))
@@ -42,3 +42,7 @@ g = lambda a: a > 3
 
 str = "01/06/2014 07:22:04"
 print(str[:10])
+
+array = [0,1,3,2,3,3]
+max = np.max(array)
+print(array.index(max))

@@ -13,6 +13,8 @@ class Correlation:
         self.store = []  # 所有商店名
 
         self.stay_data = pd.DataFrame()  # 停车数据
+        self.car_list = []
+        self.cc_list = []
 
         self.cc_data = pd.DataFrame()  # 信用卡消费数据
         self.Correlation_cc_columns = []  # 所有卡
@@ -25,11 +27,14 @@ class Correlation:
         self.loy_events = []  # 处理后的会员卡消费数据
         self.Correlation_loy = pd.DataFrame()  # 会员卡对应车的相关度
 
-        # 高斯核函数的参数
-        self.sigma1 = 30  # 30秒
-        self.sigma2 = 50  # 50米
+        self.cc_matched_count_sorted = []
+        self.cc_matched_dis_sorted = []
+        self.cc_list_sorted = []
+        self.car_list_sorted = []
 
-        self.outputfile_cc = 'output/corr_data_cc1.json'
+
+        # self.outputfile_cc = 'output/corr_data_cc1.json'
+        self.outputfile_cc = 'output/corr_data_cc2.json'
         self.outputfile_loy = 'output/corr_data_loy.txt'
 
         self.init()
@@ -42,6 +47,7 @@ class Correlation:
         # print(store)
 
         self.stay_data = pd.read_json("../dataset/stay_periods_1.0.json")
+        self.car_list = list(self.stay_data.id)
         # print(stay_data)
 
         # cc卡对应的关系矩阵
@@ -68,9 +74,21 @@ class Correlation:
 
         self.Correlation_cc = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_cc_columns)
         self.Correlation_loy = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_loy_columns)
+        self.cc_list = self.Correlation_cc_columns
 
     def timeMatched(self, stayEvent, consumeEvent):
         """求cc的消费事件时间上是否存在于car的停车事件时间段"""
+        stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"], "%m/%d/%Y %H:%M:%S"))
+        stay_end = time.mktime(time.strptime(stayEvent["stay_end"], "%m/%d/%Y %H:%M:%S"))
+        time_consume = time.mktime(time.strptime(consumeEvent.timestamp, "%m/%d/%Y %H:%M"))
+
+        if stay_begin <= time_consume <= stay_end:
+            return True
+        else:
+            return False
+
+    def timeMatched2(self, stayEvent, consumeEvent):
+        """求loyalty_card的消费事件时间上是否存在于car的停车事件时间段"""
         stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"], "%m/%d/%Y %H:%M:%S"))
         stay_end = time.mktime(time.strptime(stayEvent["stay_end"], "%m/%d/%Y %H:%M:%S"))
         time_consume = time.mktime(time.strptime(consumeEvent.timestamp, "%m/%d/%Y %H:%M"))
@@ -98,14 +116,14 @@ class Correlation:
                 matched_dis = 0
                 for consumeEvent in cc_num.iterrows():
                     for stay_period in stayEvents:
-                        if self.timeMatched(stay_period, consumeEvent[1]):
+                        if self.timeMatched(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 3000:  # 时间上匹配且空间上距离 <= 3000m
                             matched_count += 1
                             matched_dis += self.distance(stay_period,consumeEvent[1])
                             # print(self.distance(stay_period,consumeEvent[1]))
                 if(matched_count != 0):
                     ave_matched_dis = matched_dis / matched_count
                 else:
-                    ave_matched_dis = 5000   # 若匹配数量为0，设置平均距离为5km(相当于无穷)
+                    ave_matched_dis = 3000   # 若匹配数量为0，设置平均距离为3km(相当于无穷)
                 res_row_count.append(matched_count)
                 res_row_dis.append(ave_matched_dis)
             # print(len(res_row))
@@ -114,19 +132,71 @@ class Correlation:
             self.cc_matched_count.append(res_row_count)
             self.cc_matched_dis.append(res_row_dis)
 
+    def diagSort(self):
+        """对相关矩阵进行对角排序，尽量使一一对应的数据在左上角的对角线上"""
 
+        car_list_sorted = []  # 排序后的车id列表
+        car_diag_index = []  # 对角线上的车索引列表
+
+        cc_list_sorted = []  # 排序后的信用卡id列表
+        cc_diag_index = []  # 对角线上的信用卡索引列表
+        cc_index_rest = []  # 未对角排序信用卡索引列表
+
+
+        self.cc_matched_count_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
+
+
+        flag = False
+        for indexi, cc in enumerate(self.cc_matched_count):
+            count_max = np.max(cc)
+            max_index = cc.index(count_max)
+
+            if self.car_list[max_index] in car_list_sorted:
+                cc_index_rest.append(indexi)
+            else:
+                cc_diag_index.append(indexi)
+                self.cc_list_sorted.append(self.cc_list[indexi])
+                car_diag_index.append(max_index)
+                self.car_list_sorted.append(self.car_list[max_index])
+
+
+        cc_diag_index.extend(cc_index_rest)
+        for index in cc_index_rest:
+            self.cc_list_sorted.append(self.cc_list[index])
+
+
+        for index, carid in enumerate(self.car_list):
+            if index not in car_diag_index:
+                car_diag_index.append(index)
+                self.car_list_sorted.append(carid)
+        print(len(cc_diag_index))
+        print(cc_diag_index)
+        print(len(car_diag_index))
+        print(car_diag_index)
+
+        for indexi, cc in enumerate(cc_diag_index):
+            for indexj, car in enumerate(car_diag_index):
+                self.cc_matched_count_sorted[indexi][indexj] = self.cc_matched_count[cc][car]
+                self.cc_matched_dis_sorted[indexi][indexj] = self.cc_matched_dis[cc][car]
 
     def saveData(self, outputfile):
         """
         相关数据写入文件
         np.savetxt默认的参数，数据格式是二维数组，注意！
         """
-        data = {"cc_num": self.Correlation_cc_columns, "car_id": list(self.stay_data.id),
-                "matched_count": self.cc_matched_count, 'matched_dis': self.cc_matched_dis}
-        with open(outputfile, 'w') as f:
+        # data = {"cc_num": self.Correlation_cc_columns, "car_id": list(self.stay_data.id),
+        #         "matched_count": self.cc_matched_count, 'matched_dis': self.cc_matched_dis}
+        # with open(outputfile, 'w') as f:
+        #     json.dump(data, f)
 
+        data = {"cc_num": self.cc_list_sorted, "car_id": self.car_list_sorted,
+                "matched_count": self.cc_matched_count_sorted, 'matched_dis': self.cc_matched_dis_sorted}
+        with open(outputfile, 'w') as f:
             json.dump(data, f)
+
+
 if __name__ == '__main__':
     corr = Correlation()
     corr.correlation_cc()
+    corr.diagSort()
     corr.saveData(corr.outputfile_cc)
