@@ -9,12 +9,14 @@ from geopy.distance import geodesic
 
 class Correlation:
     def __init__(self):
+
         self.store_position = pd.DataFrame()  # 商店坐标
         self.store = []  # 所有商店名
 
         self.stay_data = pd.DataFrame()  # 停车数据
         self.car_list = []
         self.cc_list = []
+        self.loy_list = []
 
         self.cc_data = pd.DataFrame()  # 信用卡消费数据
         self.Correlation_cc_columns = []  # 所有卡
@@ -26,6 +28,8 @@ class Correlation:
         self.Correlation_loy_columns = pd.DataFrame()  # 所有卡
         self.loy_events = []  # 处理后的会员卡消费数据
         self.Correlation_loy = pd.DataFrame()  # 会员卡对应车的相关度
+        self.loy_matched_count = []
+        self.loy_matched_dis = []
 
         self.cc_matched_count_sorted = []
         self.cc_matched_dis_sorted = []
@@ -35,7 +39,7 @@ class Correlation:
 
         # self.outputfile_cc = 'output/corr_data_cc1.json'
         self.outputfile_cc = 'output/corr_data_cc2.json'
-        self.outputfile_loy = 'output/corr_data_loy.txt'
+        self.outputfile_loy = 'output/corr_data_loy.json'
 
         self.init()
 
@@ -75,6 +79,7 @@ class Correlation:
         self.Correlation_cc = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_cc_columns)
         self.Correlation_loy = pd.DataFrame(index=list(self.stay_data.id), columns=self.Correlation_loy_columns)
         self.cc_list = self.Correlation_cc_columns
+        self.loy_list = self.Correlation_loy_columns
 
     def timeMatched(self, stayEvent, consumeEvent):
         """求cc的消费事件时间上是否存在于car的停车事件时间段"""
@@ -87,11 +92,11 @@ class Correlation:
         else:
             return False
 
-    def timeMatched2(self, stayEvent, consumeEvent):
+    def timeMatched_loy(self, stayEvent, consumeEvent):
         """求loyalty_card的消费事件时间上是否存在于car的停车事件时间段"""
-        stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"], "%m/%d/%Y %H:%M:%S"))
-        stay_end = time.mktime(time.strptime(stayEvent["stay_end"], "%m/%d/%Y %H:%M:%S"))
-        time_consume = time.mktime(time.strptime(consumeEvent.timestamp, "%m/%d/%Y %H:%M"))
+        stay_begin = time.mktime(time.strptime(stayEvent["stay_begin"][:10], "%m/%d/%Y"))
+        stay_end = time.mktime(time.strptime(stayEvent["stay_end"][:10], "%m/%d/%Y"))
+        time_consume = time.mktime(time.strptime(consumeEvent.timestamp, "%m/%d/%Y"))
 
         if stay_begin <= time_consume <= stay_end:
             return True
@@ -132,6 +137,38 @@ class Correlation:
             self.cc_matched_count.append(res_row_count)
             self.cc_matched_dis.append(res_row_dis)
 
+    def correlation_loy(self):
+        """求每张loyalty card和每个car的相关性"""
+
+        for loy_num in self.loy_events:
+            res_row_count = []
+            res_row_dis = []
+            for stayEvents in self.stay_data["stay_periods"]:
+                matched_count = 0
+                matched_dis = 0
+                for consumeEvent in loy_num.iterrows():
+                    matched_dis_list = []
+                    for stay_period in stayEvents:
+                        if self.timeMatched_loy(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 1000:  # 时间上匹配且空间上距离 <= 1000m
+                            matched_dis_list.append(self.distance(stay_period,consumeEvent[1]))
+                            # matched_count += 1
+                            # matched_dis += self.distance(stay_period,consumeEvent[1])
+                            # print(self.distance(stay_period,consumeEvent[1]))
+                    if len(matched_dis_list) > 0:
+                        matched_dis += np.min(matched_dis_list)
+                        matched_count += 1
+                if(matched_count != 0):
+                    ave_matched_dis = matched_dis / matched_count
+                else:
+                    ave_matched_dis = 1000   # 若匹配数量为0，设置平均距离为1km(相当于无穷)
+                res_row_count.append(matched_count)
+                res_row_dis.append(ave_matched_dis)
+            print(len(res_row_count))
+            print(res_row_count)
+
+            self.loy_matched_count.append(res_row_count)
+            self.loy_matched_dis.append(res_row_dis)
+
     def diagSort(self):
         """对相关矩阵进行对角排序，尽量使一一对应的数据在左上角的对角线上"""
 
@@ -144,21 +181,32 @@ class Correlation:
 
 
         self.cc_matched_count_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
+        self.cc_matched_dis_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
 
 
-        flag = False
         for indexi, cc in enumerate(self.cc_matched_count):
             count_max = np.max(cc)
-            max_index = cc.index(count_max)
+            max_num = 0
+            min_dis_list = []          # count为最大匹配数量，所对应的距离列表
+            min_dis_index = []
+            for indexj, count in enumerate(cc):
+                if count == count_max:
+                    max_num += 1
+                    min_dis_list.append(self.cc_matched_dis[indexi][indexj])
+                    min_dis_index.append(indexj)
+            if max_num == 1:
+                max_index = cc.index(count_max)
+            else:                                   # 对于多个最大匹配数量，求最短匹配距离
+                min_dis = np.min(min_dis_list)
+                max_index = min_dis_index[min_dis_list.index(min_dis)]
 
-            if self.car_list[max_index] in car_list_sorted:
+            if self.car_list[max_index] in self.car_list_sorted:
                 cc_index_rest.append(indexi)
             else:
                 cc_diag_index.append(indexi)
                 self.cc_list_sorted.append(self.cc_list[indexi])
                 car_diag_index.append(max_index)
                 self.car_list_sorted.append(self.car_list[max_index])
-
 
         cc_diag_index.extend(cc_index_rest)
         for index in cc_index_rest:
@@ -169,10 +217,6 @@ class Correlation:
             if index not in car_diag_index:
                 car_diag_index.append(index)
                 self.car_list_sorted.append(carid)
-        print(len(cc_diag_index))
-        print(cc_diag_index)
-        print(len(car_diag_index))
-        print(car_diag_index)
 
         for indexi, cc in enumerate(cc_diag_index):
             for indexj, car in enumerate(car_diag_index):
@@ -194,9 +238,29 @@ class Correlation:
         with open(outputfile, 'w') as f:
             json.dump(data, f)
 
+    def saveData_loy(self, outputfile):
+        """
+        相关数据写入文件
+        np.savetxt默认的参数，数据格式是二维数组，注意！
+        """
+        # data = {"cc_num": self.Correlation_cc_columns, "car_id": list(self.stay_data.id),
+        #         "matched_count": self.cc_matched_count, 'matched_dis': self.cc_matched_dis}
+        # with open(outputfile, 'w') as f:
+        #     json.dump(data, f)
+
+        data = {"loy_num": self.loy_list, "car_id": self.car_list,
+                "matched_count": self.loy_matched_count, 'matched_dis': self.loy_matched_dis}
+        with open(outputfile, 'w') as f:
+            json.dump(data, f)
+
 
 if __name__ == '__main__':
     corr = Correlation()
-    corr.correlation_cc()
-    corr.diagSort()
-    corr.saveData(corr.outputfile_cc)
+    # 求cc匹配数据
+    # corr.correlation_cc()
+    # corr.diagSort()
+    # corr.saveData(corr.outputfile_cc)
+
+    # 求loy匹配数据
+    corr.correlation_loy()
+    corr.saveData_loy(corr.outputfile_loy)

@@ -40,9 +40,11 @@ df = pd.DataFrame(data=matrix, index=['1','2'],columns=['a','b','c'])
 
 g = lambda a: a > 3
 
-str = "01/06/2014 07:22:04"
-print(str[:10])
+date = "01/06/2014 07:22:04"
+date1 = "01/06/2014 00:00:00"
+print(time.mktime(time.strptime(date, "%m/%d/%Y %H:%M:%S")))
+print(time.mktime(time.strptime(date1, "%m/%d/%Y %H:%M:%S")))
 
-array = [0,1,3,2,3,3]
-max = np.max(array)
-print(array.index(max))
+# array = [0,1,3,2,3,3]
+# max = np.max(array)
+# print(array.index(max))
