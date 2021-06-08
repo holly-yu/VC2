@@ -41,8 +41,8 @@ class Correlation:
 
 
         # self.outputfile_cc = 'output/corr_data_cc1.json'
-        self.outputfile_cc = 'output/corr_data_cc2.json'
-        self.outputfile_loy = 'output/corr_data_loy_800.json'
+        self.outputfile_cc = 'output/corr_data_cc_sorted_1500.json'
+        self.outputfile_loy = 'output/corr_data_loy_sorted_1500.json'
 
         self.init()
 
@@ -124,14 +124,14 @@ class Correlation:
                 matched_dis = 0
                 for consumeEvent in cc_num.iterrows():
                     for stay_period in stayEvents:
-                        if self.timeMatched(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 3000:  # 时间上匹配且空间上距离 <= 3000m
+                        if self.timeMatched(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 1500:  # 时间上匹配且空间上距离 <= 3000m
                             matched_count += 1
                             matched_dis += self.distance(stay_period,consumeEvent[1])
                             # print(self.distance(stay_period,consumeEvent[1]))
                 if(matched_count != 0):
                     ave_matched_dis = matched_dis / matched_count
                 else:
-                    ave_matched_dis = 3000   # 若匹配数量为0，设置平均距离为3km(相当于无穷)
+                    ave_matched_dis = 1500   # 若匹配数量为0，设置平均距离为3km(相当于无穷)
                 res_row_count.append(matched_count)
                 res_row_dis.append(ave_matched_dis)
             # print(len(res_row))
@@ -152,7 +152,7 @@ class Correlation:
                 for consumeEvent in loy_num.iterrows():
                     matched_dis_list = []
                     for stay_period in stayEvents:
-                        if self.timeMatched_loy(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 800:  # 时间上匹配且空间上距离 <= 1500m
+                        if self.timeMatched_loy(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 1500:  # 时间上匹配且空间上距离 <= 1500m
                             matched_dis_list.append(self.distance(stay_period,consumeEvent[1]))
 
                     if len(matched_dis_list) > 0:
@@ -161,7 +161,7 @@ class Correlation:
                 if(matched_count != 0):
                     ave_matched_dis = matched_dis / matched_count
                 else:
-                    ave_matched_dis = 800   # 若匹配数量为0，设置平均距离为1km(相当于无穷)
+                    ave_matched_dis = 1500   # 若匹配数量为0，设置平均距离为1km(相当于无穷)
                 res_row_count.append(matched_count)
                 res_row_dis.append(ave_matched_dis)
             print(len(res_row_count))
@@ -311,7 +311,7 @@ class Correlation:
 
 if __name__ == '__main__':
     corr = Correlation()
-    # 求cc匹配数据
+    # # 求cc匹配数据
     # corr.correlation_cc()
     # corr.diagSort_cc()
     # corr.saveData(corr.outputfile_cc)
