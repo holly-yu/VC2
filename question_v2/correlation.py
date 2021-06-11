@@ -41,8 +41,8 @@ class Correlation:
 
 
         # self.outputfile_cc = 'output/corr_data_cc1.json'
-        self.outputfile_cc = 'output/corr_data_cc_sorted_1500.json'
-        self.outputfile_loy = 'output/corr_data_loy_sorted_1500.json'
+        self.outputfile_cc = 'output2/corr_data_cc_sorted_1000.json'
+        self.outputfile_loy = 'output2/corr_data_loy_sorted_1500.json'
 
         self.init()
 
@@ -124,14 +124,14 @@ class Correlation:
                 matched_dis = 0
                 for consumeEvent in cc_num.iterrows():
                     for stay_period in stayEvents:
-                        if self.timeMatched(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 1500:  # 时间上匹配且空间上距离 <= 3000m
+                        if self.timeMatched(stay_period, consumeEvent[1]) and self.distance(stay_period,consumeEvent[1]) <= 1000:  # 时间上匹配且空间上距离 <= 3000m
                             matched_count += 1
                             matched_dis += self.distance(stay_period,consumeEvent[1])
                             # print(self.distance(stay_period,consumeEvent[1]))
                 if(matched_count != 0):
                     ave_matched_dis = matched_dis / matched_count
                 else:
-                    ave_matched_dis = 1500   # 若匹配数量为0，设置平均距离为3km(相当于无穷)
+                    ave_matched_dis = 1000   # 若匹配数量为0，设置平均距离为3km(相当于无穷)
                 res_row_count.append(matched_count)
                 res_row_dis.append(ave_matched_dis)
             # print(len(res_row))
@@ -139,6 +139,11 @@ class Correlation:
 
             self.cc_matched_count.append(res_row_count)
             self.cc_matched_dis.append(res_row_dis)
+
+        self.cc_matched_count = list(map(list, zip(*self.cc_matched_count)))
+        self.cc_matched_dis = list(map(list, zip(*self.cc_matched_dis)))
+
+        print(self.cc_matched_count)
 
     def correlation_loy(self):
         """求每张loyalty card和每个car的相关性"""
@@ -179,50 +184,54 @@ class Correlation:
         cc_list_sorted = []  # 排序后的信用卡id列表
         cc_diag_index = []  # 对角线上的信用卡索引列表
         cc_index_rest = []  # 未对角排序信用卡索引列表
+        car_index_rest = []
+
+        self.cc_matched_count_sorted = [[0] * len(self.cc_list) for i in self.car_list]  # 初始化重排序后的相关矩阵
+        self.cc_matched_dis_sorted = [[0] * len(self.cc_list) for i in self.car_list]  # 初始化重排序后的相关矩阵
 
 
-        self.cc_matched_count_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
-        self.cc_matched_dis_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
-
-
-        for indexi, cc in enumerate(self.cc_matched_count):
-            count_max = np.max(cc)
+        for indexi, car in enumerate(self.cc_matched_count):
+            count_max = np.max(car)
             max_num = 0
             min_dis_list = []          # count为最大匹配数量，所对应的距离列表
             min_dis_index = []
-            for indexj, count in enumerate(cc):
+            for indexj, count in enumerate(car):
                 if count == count_max:
                     max_num += 1
                     min_dis_list.append(self.cc_matched_dis[indexi][indexj])
                     min_dis_index.append(indexj)
             if max_num == 1:
-                max_index = cc.index(count_max)
+                max_index = car.index(count_max)
             else:                                   # 对于多个最大匹配数量，求最短匹配距离
                 min_dis = np.min(min_dis_list)
                 max_index = min_dis_index[min_dis_list.index(min_dis)]
 
-            if self.car_list[max_index] in self.car_list_sorted:
-                cc_index_rest.append(indexi)
+            if self.cc_list[max_index] in self.cc_list_sorted:
+                car_index_rest.append(indexi)
             else:
-                cc_diag_index.append(indexi)
-                self.cc_list_sorted.append(self.cc_list[indexi])
-                car_diag_index.append(max_index)
-                self.car_list_sorted.append(self.car_list[max_index])
+                cc_diag_index.append(max_index)
+                self.cc_list_sorted.append(self.cc_list[max_index])
+                car_diag_index.append(indexi)
+                self.car_list_sorted.append(self.car_list[indexi])
 
-        cc_diag_index.extend(cc_index_rest)
-        for index in cc_index_rest:
-            self.cc_list_sorted.append(self.cc_list[index])
+        car_diag_index.extend(car_index_rest)
+        for index in car_index_rest:
+            self.car_list_sorted.append(self.car_list[index])
 
 
-        for index, carid in enumerate(self.car_list):
-            if index not in car_diag_index:
-                car_diag_index.append(index)
-                self.car_list_sorted.append(carid)
+        for index, ccnum in enumerate(self.cc_list):
+            if index not in cc_diag_index:
+                cc_diag_index.append(index)
+                self.cc_list_sorted.append(ccnum)
 
-        for indexi, cc in enumerate(cc_diag_index):
-            for indexj, car in enumerate(car_diag_index):
-                self.cc_matched_count_sorted[indexi][indexj] = self.cc_matched_count[cc][car]
-                self.cc_matched_dis_sorted[indexi][indexj] = self.cc_matched_dis[cc][car]
+
+        print(car_diag_index)
+        print(cc_diag_index)
+
+        for indexi, car in enumerate(car_diag_index):
+            for indexj, cc in enumerate(cc_diag_index):
+                self.cc_matched_count_sorted[indexi][indexj] = self.cc_matched_count[car][cc]
+                self.cc_matched_dis_sorted[indexi][indexj] = self.cc_matched_dis[car][cc]
 
 
     def diagSort_loy(self):
@@ -312,11 +321,11 @@ class Correlation:
 if __name__ == '__main__':
     corr = Correlation()
     # # 求cc匹配数据
-    # corr.correlation_cc()
-    # corr.diagSort_cc()
-    # corr.saveData(corr.outputfile_cc)
+    corr.correlation_cc()
+    corr.diagSort_cc()
+    corr.saveData(corr.outputfile_cc)
 
     # 求loy匹配数据
-    corr.correlation_loy()
-    corr.diagSort_loy()
-    corr.saveData_loy(corr.outputfile_loy)
+    # corr.correlation_loy()
+    # corr.diagSort_loy()
+    # corr.saveData_loy(corr.outputfile_loy)

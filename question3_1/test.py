@@ -40,11 +40,25 @@ df = pd.DataFrame(data=matrix, index=['1','2'],columns=['a','b','c'])
 
 g = lambda a: a > 3
 
-date = "01/06/2014 07:22:04"
-date1 = "01/06/2014 00:00:00"
-print(time.mktime(time.strptime(date, "%m/%d/%Y %H:%M:%S")))
-print(time.mktime(time.strptime(date1, "%m/%d/%Y %H:%M:%S")))
+# date = "01/06/2014 07:22:04"
+# date1 = "01/06/2014 00:00:00"
+# print(time.mktime(time.strptime(date, "%m/%d/%Y %H:%M:%S")))
+# print(time.mktime(time.strptime(date1, "%m/%d/%Y %H:%M:%S")))
 
 # array = [0,1,3,2,3,3]
 # max = np.max(array)
 # print(array.index(max))
+
+a = ['a','b','c']
+b = ['c','b','d']
+c = []
+# print(list(set(a).intersection(set(b))))
+# print((list(set(a).union(set(b)))))
+# print(1/22)
+# if c:
+#     print(1)
+# else:
+#     print(2)
+
+
+self.cc_data = pd.read_csv("../dataset/cc_data.csv")
