@@ -59,6 +59,7 @@ c = []
 #     print(1)
 # else:
 #     print(2)
+cc_data = pd.read_csv("../dataset/cc_data.csv")
 
-
-self.cc_data = pd.read_csv("../dataset/cc_data.csv")
+print(list(cc_data.timestamp))
+# print(cc_data[((cc_data.last4ccnum == 7108) & (cc_data.timestamp == "01/06/2014 07:34"))])

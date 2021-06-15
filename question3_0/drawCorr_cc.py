@@ -161,7 +161,6 @@ class DrawCorr:
         self.corr_data_sorted = [[0] * len(self.car_list) for i in self.cc_list]  # 初始化重排序后的相关矩阵
 
 
-        flag = False
         for indexi, cc in enumerate(self.corr_data):
             for indexj, corr in enumerate(cc):
                 if corr == 1:
